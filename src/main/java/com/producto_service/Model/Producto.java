@@ -18,15 +18,13 @@ public class Producto {
 
     private String nombre;
     private String descripcion;
-    @Column(name = "precio_unitario", nullable = false)
-    private Double precio;
     @Column(name = "stock", nullable = false)
     private Integer cantidad;
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)
     private Categoria categoria;
-    @ManyToMany
-    private List<Marca> marcas;
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DetalleProductoMarca> detalleProductoMarca;
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Historial> historiales;
 

@@ -1,6 +1,7 @@
 package com.producto_service.DTO;
 
 import com.producto_service.Model.Categoria;
+import com.producto_service.Model.DetalleProductoMarca;
 import com.producto_service.Model.Marca;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -22,18 +23,10 @@ public class ProductoDto {
     @NotBlank(message = "La descripción no puede estar vacía")
     @Size(max = 500, message = "La descripción no puede tener más de 500 caracteres")
     private String descripcion;
-
-    @NotNull(message = "El precio no puede ser nulo")
-    @Positive(message = "El precio debe ser mayor que cero")
-    private Double precio;
-
-    private Integer cantidad;
-
     @NotNull(message = "La categoría no puede ser nula")
     @Valid
     private Categoria categoria;
-
     @NotEmpty(message = "La lista de marcas no puede estar vacía")
     @Valid
-    private List<Marca> marcas;
+    private List<DetalleProductoMarca> detalleProductoMarcas;
 }

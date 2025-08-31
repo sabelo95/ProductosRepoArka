@@ -1,31 +1,33 @@
 package com.producto_service.Service;
+import com.producto_service.DTO.DetalleProductoMarcaResponseDto;
 import com.producto_service.DTO.ProductoDto;
+import com.producto_service.DTO.ProductoResponseDto;
+import com.producto_service.Mapper.ProductoMapper;
+import com.producto_service.Model.DetalleProductoMarca;
+import com.producto_service.Model.Marca;
 import com.producto_service.Model.Producto;
 
 import com.producto_service.Repository.ProductoRepository;
+import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @Data
+@AllArgsConstructor
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final MarcaService marcaService;
     private final CategoriaService categoriaService;
     private final HistorialService historialService;
+    private final ProductoMapper productoMapper;
 
 
-    public ProductoService(ProductoRepository productoRepository, MarcaService marcaService,
-                           CategoriaService categoriaService, HistorialService historialService) {
-        this.historialService = historialService;
-        this.categoriaService = categoriaService;
-        this.marcaService = marcaService;
-        this.productoRepository = productoRepository;
-
-
-    }
 
     public List<Producto> obtenerTodosLosProductos() {
         return productoRepository.findAll();
@@ -43,32 +45,62 @@ public class ProductoService {
     return productoRepository.findByCategoriaNombre(categoriaNombre);
     }
 
-    public List<Producto> obtenerProductosPorMarca(String marcaNombre) {
-        if (marcaNombre == null || marcaNombre.isEmpty()) {
-            throw new IllegalArgumentException("El nombre de la marca no puede ser nulo o vacío.");
-        }
-        if (marcaService.obtenerMarcaPorNombre(marcaNombre) == null) {
-            throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
-        }
-        return productoRepository.findByMarcaNombre(marcaNombre);
-    }
+//    public List<Producto> obtenerProductosPorMarca(String marcaNombre) {
+//        if (marcaNombre == null || marcaNombre.isEmpty()) {
+//            throw new IllegalArgumentException("El nombre de la marca no puede ser nulo o vacío.");
+//        }
+//        if (marcaService.obtenerMarcaPorNombre(marcaNombre) == null) {
+//            throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
+//        }
+//        return productoRepository.findByMarcaNombre(marcaNombre);
+//    }
 
     public List<Producto> obtenerProductosPorIds(List<Long> ids) {
         return productoRepository.findAllById(ids);
     }
 
-    public Producto crearProducto(ProductoDto productoDto) {
-        marcaService.validarMarca(productoDto.getMarcas());
-        categoriaService.validarCategoria(productoDto.getCategoria());
+    @Transactional
+    public ProductoResponseDto crearProducto(ProductoDto productoDto) {
+
+        int cantidadStock = productoDto.getDetalleProductoMarcas()
+                .stream()
+                .mapToInt(DetalleProductoMarca::getCantidad)
+                .sum();
+
+
         Producto producto = new Producto();
         producto.setNombre(productoDto.getNombre());
         producto.setDescripcion(productoDto.getDescripcion());
-        producto.setPrecio(productoDto.getPrecio());
-        producto.setCantidad(productoDto.getCantidad());
+        producto.setCantidad(cantidadStock);
         producto.setCategoria(productoDto.getCategoria());
-        producto.setMarcas(productoDto.getMarcas());
-        return productoRepository.save(producto);
+
+
+        List<DetalleProductoMarca> detalles = new ArrayList<>();
+        for (DetalleProductoMarca detalleDto : productoDto.getDetalleProductoMarcas()) {
+            String marcaNombre = detalleDto.getMarca().getNombre();
+            Marca marca = marcaService.obtenerMarcaPorNombre(marcaNombre);
+            if (marca == null) {
+                throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
+            }
+            DetalleProductoMarca detalle = new DetalleProductoMarca();
+            detalle.setMarca(marca);
+            detalle.setCantidad(detalleDto.getCantidad());
+            detalle.setPrecio(detalleDto.getPrecio());
+            detalle.setProducto(producto);
+            detalles.add(detalle);
+        }
+
+        producto.setDetalleProductoMarca(detalles);
+
+
+        Producto productoGuardado = productoRepository.save(producto);
+
+
+        return productoMapper.mapToResponseDto(productoGuardado);
     }
+
+
+
 
     public Producto obtenerProductoPorNombre(String nombre) {
         return productoRepository.findByNombre(nombre)

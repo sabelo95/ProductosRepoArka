@@ -1,6 +1,7 @@
 package com.producto_service.Controller;
 
 import com.producto_service.DTO.ProductoDto;
+import com.producto_service.DTO.ProductoResponseDto;
 import com.producto_service.Model.Producto;
 import com.producto_service.Service.ProductoService;
 import jakarta.validation.Valid;
@@ -32,10 +33,10 @@ public class ProductoController {
         }
 
 
-        @GetMapping("/marca/{nombre}")
-        public List<Producto> obtenerPorMarca(@PathVariable String nombre) {
-            return productoService.obtenerProductosPorMarca(nombre);
-        }
+//        @GetMapping("/marca/{nombre}")
+//        public List<Producto> obtenerPorMarca(@PathVariable String nombre) {
+//            return productoService.obtenerProductosPorMarca(nombre);
+//        }
 
         @GetMapping("/lista-ids")
         public List<Producto> obtenerPorIds(@RequestParam List<Long> ids) {
@@ -46,7 +47,7 @@ public class ProductoController {
     @PostMapping()
         public ResponseEntity<?> crearProducto(@Valid @RequestBody ProductoDto producto) {
             try {
-                Producto nuevo = productoService.crearProducto(producto);
+                ProductoResponseDto nuevo = productoService.crearProducto(producto);
                 return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
