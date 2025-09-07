@@ -15,8 +15,13 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     List<Producto> findByCategoriaNombre(String categoriaNombre);
 
-//    @Query("SELECT p FROM Producto p JOIN p.marcas m WHERE m.nombre = :nombre")
-//    List<Producto> findByMarcaNombre(@Param("nombre") String nombre);
+    @Query("SELECT p " +
+            "FROM Producto p " +
+            "JOIN p.detalleProductoMarca dpm " +
+            "JOIN dpm.marca m " +
+            "WHERE m.nombre = :nombreMarca")
+    List<Producto> findByMarcaNombre(@Param("nombreMarca") String nombreMarca);
+
 
     List<Producto> findAllById(Iterable<Long> ids);
 

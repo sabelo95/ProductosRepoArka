@@ -33,10 +33,10 @@ public class ProductoController {
         }
 
 
-//        @GetMapping("/marca/{nombre}")
-//        public List<Producto> obtenerPorMarca(@PathVariable String nombre) {
-//            return productoService.obtenerProductosPorMarca(nombre);
-//        }
+        @GetMapping("/marca/{nombre}")
+        public List<String> obtenerPorMarca(@PathVariable String nombre) {
+            return productoService.obtenerProductosPorMarca(nombre);
+        }
 
         @GetMapping("/lista-ids")
         public List<Producto> obtenerPorIds(@RequestParam List<Long> ids) {
@@ -74,31 +74,23 @@ public class ProductoController {
             }
         }
 
-//    @PutMapping("/actualizar/{id}")
-//    public ResponseEntity<?> actualizarProducto(@PathVariable Long id, @RequestBody ProductoDto producto) {
-//        try {
-//            Producto productoExistente = productoService.obtenerProductoPorId(id);
-//            producto.setId(productoExistente.getId());
-//            Producto actualizado = productoService.crearProducto(producto);
-//            return ResponseEntity.ok(actualizado);
-//        } catch (IllegalArgumentException e) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-//        }
-
-    @PutMapping("/actualizar-stock/{nombre}")
-    public ResponseEntity<String> actualizarStock(@PathVariable String nombre , @RequestParam Integer cantidad) {
+    @PutMapping("/actualizar/{nombre}")
+    public ResponseEntity<?> actualizarProducto(@PathVariable String nombre, @RequestBody ProductoDto producto) {
         try {
-            String mensaje = productoService.actualizarStock(nombre, cantidad);
-            return ResponseEntity.ok(mensaje);
+            Producto productoExistente = productoService.obtenerProductoPorNombre(nombre);
+            if (productoExistente == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("El producto con nombre " + nombre + " no existe.");
+            }
+            Producto actualizado = productoService.actualizarProducto(nombre, producto);
+            return ResponseEntity.ok(actualizado);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al actualizar el stock: " + e.getMessage());
         }
-    }
 
 
 
 
 
-}
+
+
+}}

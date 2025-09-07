@@ -7,6 +7,7 @@ import com.producto_service.Model.DetalleProductoMarca;
 import com.producto_service.Model.Marca;
 import com.producto_service.Model.Producto;
 
+import com.producto_service.Repository.DetalleProductoMarcaRepository;
 import com.producto_service.Repository.ProductoRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,7 @@ public class ProductoService {
     private final CategoriaService categoriaService;
     private final HistorialService historialService;
     private final ProductoMapper productoMapper;
+    private final DetalleProductoMarcaRepository detalleProductoMarcaRepository;
 
 
 
@@ -45,15 +47,20 @@ public class ProductoService {
     return productoRepository.findByCategoriaNombre(categoriaNombre);
     }
 
-//    public List<Producto> obtenerProductosPorMarca(String marcaNombre) {
-//        if (marcaNombre == null || marcaNombre.isEmpty()) {
-//            throw new IllegalArgumentException("El nombre de la marca no puede ser nulo o vacío.");
-//        }
-//        if (marcaService.obtenerMarcaPorNombre(marcaNombre) == null) {
-//            throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
-//        }
-//        return productoRepository.findByMarcaNombre(marcaNombre);
-//    }
+    public List<String> obtenerProductosPorMarca(String marcaNombre) {
+        if (marcaNombre == null || marcaNombre.isEmpty()) {
+            throw new IllegalArgumentException("El nombre de la marca no puede ser nulo o vacío.");
+        }
+        if (marcaService.obtenerMarcaPorNombre(marcaNombre) == null) {
+            throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
+        }
+        List<Producto> productos= productoRepository.findByMarcaNombre(marcaNombre);
+        List<String> nombresProductos = new ArrayList<>();
+        for (Producto producto : productos) {
+            nombresProductos.add(producto.getNombre());
+        }
+        return nombresProductos;
+    }
 
     public List<Producto> obtenerProductosPorIds(List<Long> ids) {
         return productoRepository.findAllById(ids);
@@ -100,8 +107,6 @@ public class ProductoService {
     }
 
 
-
-
     public Producto obtenerProductoPorNombre(String nombre) {
         return productoRepository.findByNombre(nombre)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con nombre: " + nombre));
@@ -112,16 +117,56 @@ public class ProductoService {
         productoRepository.delete(producto);
     }
 
-    public String actualizarStock(String nombre, Integer cantidad){
-        Producto producto = productoRepository.findByNombre(nombre)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con nombre: " + nombre));
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad no puede ser negativa.");
+    public Producto actualizarProducto(String nombre, ProductoDto productoDto) {
+        Producto productoExistente = obtenerProductoPorNombre(nombre);
+        if (productoExistente == null) {
+            throw new IllegalArgumentException("El producto con nombre " + nombre + " no existe.");
         }
-        producto.setCantidad(cantidad);
-        productoRepository.save(producto);
-        historialService.agregarHistorial(producto);
-        return "Stock actualizado correctamente.";
+
+
+        if (productoDto.getNombre() != null) {
+            productoExistente.setNombre(productoDto.getNombre());
+        }
+        if (productoDto.getDescripcion() != null) {
+            productoExistente.setDescripcion(productoDto.getDescripcion());
+        }
+        if (productoDto.getCategoria() != null) {
+            productoExistente.setCategoria(productoDto.getCategoria());
+        }
+
+        if (productoDto.getDetalleProductoMarcas() != null && !productoDto.getDetalleProductoMarcas().isEmpty()) {
+
+            detalleProductoMarcaRepository.deleteAll(productoExistente.getDetalleProductoMarca());
+            productoExistente.getDetalleProductoMarca().clear();
+
+
+            int cantidadStock = productoDto.getDetalleProductoMarcas()
+                    .stream()
+                    .mapToInt(DetalleProductoMarca::getCantidad)
+                    .sum();
+            productoExistente.setCantidad(cantidadStock);
+
+
+            for (DetalleProductoMarca detalleDto : productoDto.getDetalleProductoMarcas()) {
+                Marca marca = marcaService.obtenerMarcaPorNombre(detalleDto.getMarca().getNombre());
+                if (marca == null) {
+                    throw new IllegalArgumentException("La marca con nombre " + detalleDto.getMarca().getNombre() + " no existe.");
+                }
+                DetalleProductoMarca detalle = new DetalleProductoMarca();
+                detalle.setMarca(marca);
+                detalle.setCantidad(detalleDto.getCantidad());
+                detalle.setPrecio(detalleDto.getPrecio());
+                detalle.setProducto(productoExistente);
+                productoExistente.getDetalleProductoMarca().add(detalle);
+            }
+        }
+
+        return productoRepository.save(productoExistente);
     }
+
+
+
+
+
 
 }

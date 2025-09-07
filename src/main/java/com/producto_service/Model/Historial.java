@@ -1,5 +1,6 @@
 package com.producto_service.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -18,9 +19,9 @@ public class Historial {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne
-    @JoinColumn(name = "producto_id", nullable = false)
-    @JsonIgnore
-    private Producto producto;
+    @JoinColumn(name = "detalle_producto_marca_id", nullable = false)
+    @JsonBackReference
+    private DetalleProductoMarca detalleProductoMarca;
     @Column(name = "fecha_cambio", insertable = false, updatable = false)
     private Date fecha_cambio;
     private int stock_cambiado;

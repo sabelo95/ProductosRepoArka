@@ -7,6 +7,7 @@ import lombok.Data;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,15 +41,19 @@ public class MarcaService {
         return marcaRepository.save(marcaExistente);
     }
 
-    public String validarMarca(List<Marca> marcas) {
+    public Boolean validarMarca(String nombre) {
+        List<String> nombresMarcas = marcaRepository.findAll()
+                .stream()
+                .map(Marca::getNombre)
+                .collect(Collectors.toList());
 
-        List<Long> ids = obtenerTodasLasMarcas().stream().map(marca -> marca.getId()).collect(Collectors.toList());
-        for (Marca marca : marcas) {
-            if (!ids.contains(marca.getId())) {
-                throw  new IllegalArgumentException("La marca con ID " + marca.getId() + " no es válida, debe crearla primero.");
-            }
+        if (nombresMarcas.contains(nombre)) {
+            return true;
+        } else {
+            return false;
         }
-        return "Todas las marcas son válidas.";
+
+
     }
 
 
