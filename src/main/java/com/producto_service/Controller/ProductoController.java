@@ -1,6 +1,6 @@
 package com.producto_service.Controller;
 
-import com.producto_service.DTO.ProductoDto;
+import com.producto_service.DTO.RequestProductoDto;
 import com.producto_service.DTO.ProductoResponseDto;
 import com.producto_service.Model.Producto;
 import com.producto_service.Service.ProductoService;
@@ -45,7 +45,7 @@ public class ProductoController {
 
 
     @PostMapping()
-        public ResponseEntity<?> crearProducto(@Valid @RequestBody ProductoDto producto) {
+        public ResponseEntity<?> crearProducto(@Valid @RequestBody RequestProductoDto producto) {
             try {
                 ProductoResponseDto nuevo = productoService.crearProducto(producto);
                 return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
@@ -64,7 +64,7 @@ public class ProductoController {
             }
         }
 
-        @DeleteMapping("/eliminar/{nombre}")
+        @DeleteMapping("/{nombre}")
         public ResponseEntity<?> eliminarProducto(@PathVariable String nombre) {
             try {
                 productoService.eliminarProducto(nombre);
@@ -75,7 +75,7 @@ public class ProductoController {
         }
 
     @PutMapping("/actualizar/{nombre}")
-    public ResponseEntity<?> actualizarProducto(@PathVariable String nombre, @RequestBody ProductoDto producto) {
+    public ResponseEntity<?> actualizarProducto(@PathVariable String nombre, @RequestBody RequestProductoDto producto) {
         try {
             Producto productoExistente = productoService.obtenerProductoPorNombre(nombre);
             if (productoExistente == null) {

@@ -1,6 +1,5 @@
 package com.producto_service.Service;
 
-import com.producto_service.Model.DetalleProductoMarca;
 import com.producto_service.Model.Historial;
 import com.producto_service.Model.Producto;
 import com.producto_service.Repository.HistorialRepository;
@@ -13,10 +12,10 @@ public class HistorialService {
 
     private final HistorialRepository historialRepository;
 
-    public void agregarHistorial(DetalleProductoMarca detalleProductoMarca) {
+    public void agregarHistorial(Producto producto) {
         Historial historial = new Historial();
-        historial.setDetalleProductoMarca(detalleProductoMarca);
-        historial.setStock_cambiado(detalleProductoMarca.getCantidad());
+        historial.setProducto(producto);
+        historial.setStock_cambiado(producto.getCantidad());
         historialRepository.save(historial);
     }
 }

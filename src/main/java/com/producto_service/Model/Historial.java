@@ -19,9 +19,9 @@ public class Historial {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne
-    @JoinColumn(name = "detalle_producto_marca_id", nullable = false)
+    @JoinColumn(name = "producto_id", nullable = false)
     @JsonBackReference
-    private DetalleProductoMarca detalleProductoMarca;
+    private Producto producto;
     @Column(name = "fecha_cambio", insertable = false, updatable = false)
     private Date fecha_cambio;
     private int stock_cambiado;

@@ -1,13 +1,10 @@
 package com.producto_service.Service;
-import com.producto_service.DTO.DetalleProductoMarcaResponseDto;
-import com.producto_service.DTO.ProductoDto;
+import com.producto_service.DTO.RequestProductoDto;
 import com.producto_service.DTO.ProductoResponseDto;
 import com.producto_service.Mapper.ProductoMapper;
-import com.producto_service.Model.DetalleProductoMarca;
 import com.producto_service.Model.Marca;
 import com.producto_service.Model.Producto;
 
-import com.producto_service.Repository.DetalleProductoMarcaRepository;
 import com.producto_service.Repository.ProductoRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -27,7 +24,7 @@ public class ProductoService {
     private final CategoriaService categoriaService;
     private final HistorialService historialService;
     private final ProductoMapper productoMapper;
-    private final DetalleProductoMarcaRepository detalleProductoMarcaRepository;
+
 
 
 
@@ -67,43 +64,28 @@ public class ProductoService {
     }
 
     @Transactional
-    public ProductoResponseDto crearProducto(ProductoDto productoDto) {
-
-        int cantidadStock = productoDto.getDetalleProductoMarcas()
-                .stream()
-                .mapToInt(DetalleProductoMarca::getCantidad)
-                .sum();
+    public ProductoResponseDto crearProducto(RequestProductoDto productoDto) {
 
 
         Producto producto = new Producto();
         producto.setNombre(productoDto.getNombre());
         producto.setDescripcion(productoDto.getDescripcion());
-        producto.setCantidad(cantidadStock);
-        producto.setCategoria(productoDto.getCategoria());
-
-
-        List<DetalleProductoMarca> detalles = new ArrayList<>();
-        for (DetalleProductoMarca detalleDto : productoDto.getDetalleProductoMarcas()) {
-            String marcaNombre = detalleDto.getMarca().getNombre();
-            Marca marca = marcaService.obtenerMarcaPorNombre(marcaNombre);
-            if (marca == null) {
-                throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
-            }
-            DetalleProductoMarca detalle = new DetalleProductoMarca();
-            detalle.setMarca(marca);
-            detalle.setCantidad(detalleDto.getCantidad());
-            detalle.setPrecio(detalleDto.getPrecio());
-            detalle.setProducto(producto);
-            detalles.add(detalle);
+        producto.setCantidad(productoDto.getCantidad());
+        if (categoriaService.validarCategoria(productoDto.getCategoria()) != null) {
+            producto.setCategoria(productoDto.getCategoria());
+        } else {
+            throw new IllegalArgumentException("La categoría con ID " + productoDto.getCategoria().getId() + " no existe.");
         }
 
-        producto.setDetalleProductoMarca(detalles);
+        if (marcaService.validarMarca(productoDto.getMarca().getNombre()) != null) {
+            producto.setMarca(productoDto.getMarca());
+        } else {
+            throw new IllegalArgumentException("La marca con ID " + productoDto.getMarca().getId() + " no existe.");
+        }
+        producto.setPrecio(productoDto.getPrecio());
 
 
-        Producto productoGuardado = productoRepository.save(producto);
-
-
-        return productoMapper.mapToResponseDto(productoGuardado);
+;
     }
 
 
@@ -117,7 +99,7 @@ public class ProductoService {
         productoRepository.delete(producto);
     }
 
-    public Producto actualizarProducto(String nombre, ProductoDto productoDto) {
+    public Producto actualizarProducto(String nombre, RequestProductoDto productoDto) {
         Producto productoExistente = obtenerProductoPorNombre(nombre);
         if (productoExistente == null) {
             throw new IllegalArgumentException("El producto con nombre " + nombre + " no existe.");
