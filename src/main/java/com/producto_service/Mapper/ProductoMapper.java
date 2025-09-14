@@ -18,8 +18,4 @@ public class ProductoMapper {
         dto.setMarca(producto.getMarca());
         return dto;
     }
-
-
-        );
-    }
 }

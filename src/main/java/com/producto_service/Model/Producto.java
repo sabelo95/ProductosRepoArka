@@ -20,10 +20,10 @@ public class Producto {
     private String descripcion;
     @Column(name = "stock", nullable = false)
     private Integer cantidad;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "categoria_id", nullable = false)
     private Categoria categoria;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "marca_id", nullable = false)
     private Marca marca;
     private Double precio;

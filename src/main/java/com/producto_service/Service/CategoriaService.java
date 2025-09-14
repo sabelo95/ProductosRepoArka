@@ -55,11 +55,9 @@ public class CategoriaService {
         return categoriaRepository.save(categoria);
     }
 
-    public String validarCategoria(Categoria categoria) {
+    public boolean validarCategoria(Categoria categoria) {
         List<Categoria> categorias = obtenerTodasLasCategorias();
-        if (categorias.stream().noneMatch(c -> c.getId().equals(categoria.getId()))) {
-            throw new IllegalArgumentException("La categoría con ID " + categoria.getId() + " no es válida, debe crearla primero.");
-        }
-        return "La categoría es válida.";
+        return categorias.stream().anyMatch(c -> c.getId().equals(categoria.getId()));
     }
+
 }

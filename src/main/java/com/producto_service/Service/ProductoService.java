@@ -26,22 +26,20 @@ public class ProductoService {
     private final ProductoMapper productoMapper;
 
 
-
-
     public List<Producto> obtenerTodosLosProductos() {
         return productoRepository.findAll();
 
     }
 
-    public List<Producto> obtenerProductosPorCategoria(String categoriaNombre){
-    if (categoriaNombre == null || categoriaNombre.isEmpty()) {
+    public List<Producto> obtenerProductosPorCategoria(String categoriaNombre) {
+        if (categoriaNombre == null || categoriaNombre.isEmpty()) {
             throw new IllegalArgumentException("El nombre de la categoría no puede ser nulo o vacío.");
         }
-    if (categoriaService.obtenerCategoriaPorNombre(categoriaNombre) == null) {
+        if (categoriaService.obtenerCategoriaPorNombre(categoriaNombre) == null) {
             throw new IllegalArgumentException("La categoría con nombre " + categoriaNombre + " no existe.");
         }
 
-    return productoRepository.findByCategoriaNombre(categoriaNombre);
+        return productoRepository.findByCategoriaNombre(categoriaNombre);
     }
 
     public List<String> obtenerProductosPorMarca(String marcaNombre) {
@@ -51,7 +49,7 @@ public class ProductoService {
         if (marcaService.obtenerMarcaPorNombre(marcaNombre) == null) {
             throw new IllegalArgumentException("La marca con nombre " + marcaNombre + " no existe.");
         }
-        List<Producto> productos= productoRepository.findByMarcaNombre(marcaNombre);
+        List<Producto> productos = productoRepository.findByMarcaNombre(marcaNombre);
         List<String> nombresProductos = new ArrayList<>();
         for (Producto producto : productos) {
             nombresProductos.add(producto.getNombre());
@@ -60,6 +58,17 @@ public class ProductoService {
     }
 
     public List<Producto> obtenerProductosPorIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("La lista de IDs no puede ser nula o vacía.");
+        }
+
+        if (ids.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw new IllegalArgumentException("Todos los IDs deben ser números positivos y no nulos.");
+        }
+
+        if (productoRepository.findAllById(ids).isEmpty()) {
+            throw new IllegalArgumentException("Ningún producto encontrado con los IDs proporcionados.");
+        }
         return productoRepository.findAllById(ids);
     }
 
@@ -71,21 +80,27 @@ public class ProductoService {
         producto.setNombre(productoDto.getNombre());
         producto.setDescripcion(productoDto.getDescripcion());
         producto.setCantidad(productoDto.getCantidad());
-        if (categoriaService.validarCategoria(productoDto.getCategoria()) != null) {
+
+        if (categoriaService.validarCategoria(productoDto.getCategoria())) {
             producto.setCategoria(productoDto.getCategoria());
         } else {
             throw new IllegalArgumentException("La categoría con ID " + productoDto.getCategoria().getId() + " no existe.");
         }
 
-        if (marcaService.validarMarca(productoDto.getMarca().getNombre()) != null) {
+
+        if (marcaService.validarMarca(productoDto.getMarca().getNombre())) {
             producto.setMarca(productoDto.getMarca());
         } else {
             throw new IllegalArgumentException("La marca con ID " + productoDto.getMarca().getId() + " no existe.");
         }
         producto.setPrecio(productoDto.getPrecio());
 
+        Producto productoGuardado = productoRepository.save(producto);
+        historialService.agregarHistorial(producto, productoDto.getCantidad());
+        return productoMapper.toDto(productoGuardado)
 
-;
+
+        ;
     }
 
 
@@ -93,6 +108,7 @@ public class ProductoService {
         return productoRepository.findByNombre(nombre)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con nombre: " + nombre));
     }
+
     public void eliminarProducto(String nombre) {
         Producto producto = productoRepository.findByNombre(nombre)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con nombre: " + nombre));
@@ -113,40 +129,33 @@ public class ProductoService {
             productoExistente.setDescripcion(productoDto.getDescripcion());
         }
         if (productoDto.getCategoria() != null) {
+            if (!categoriaService.validarCategoria(productoDto.getCategoria())) {
+                throw new IllegalArgumentException("La categoría con id " + productoDto.getCategoria().getNombre() + " no existe.");
+            }
             productoExistente.setCategoria(productoDto.getCategoria());
         }
 
-        if (productoDto.getDetalleProductoMarcas() != null && !productoDto.getDetalleProductoMarcas().isEmpty()) {
-
-            detalleProductoMarcaRepository.deleteAll(productoExistente.getDetalleProductoMarca());
-            productoExistente.getDetalleProductoMarca().clear();
-
-
-            int cantidadStock = productoDto.getDetalleProductoMarcas()
-                    .stream()
-                    .mapToInt(DetalleProductoMarca::getCantidad)
-                    .sum();
-            productoExistente.setCantidad(cantidadStock);
-
-
-            for (DetalleProductoMarca detalleDto : productoDto.getDetalleProductoMarcas()) {
-                Marca marca = marcaService.obtenerMarcaPorNombre(detalleDto.getMarca().getNombre());
-                if (marca == null) {
-                    throw new IllegalArgumentException("La marca con nombre " + detalleDto.getMarca().getNombre() + " no existe.");
-                }
-                DetalleProductoMarca detalle = new DetalleProductoMarca();
-                detalle.setMarca(marca);
-                detalle.setCantidad(detalleDto.getCantidad());
-                detalle.setPrecio(detalleDto.getPrecio());
-                detalle.setProducto(productoExistente);
-                productoExistente.getDetalleProductoMarca().add(detalle);
+        if (productoDto.getMarca() != null) {
+            if (!marcaService.validarMarca(productoDto.getMarca().getNombre())) {
+                throw new IllegalArgumentException("La marca con nombre " + productoDto.getMarca().getNombre() + " no existe.");
             }
+            productoExistente.setMarca(productoDto.getMarca());
+        }
+        if (productoDto.getPrecio() != null) {
+            productoExistente.setPrecio(productoDto.getPrecio());
+        }
+        if (productoDto.getCantidad() != null) {
+            int nuevaCantidad = productoDto.getCantidad();
+            productoExistente.setCantidad(nuevaCantidad);
+            historialService.agregarHistorial(productoExistente, productoDto.getCantidad());
         }
 
+
+
+
         return productoRepository.save(productoExistente);
+
     }
-
-
 
 
 
