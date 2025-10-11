@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Data
@@ -72,13 +73,23 @@ public class ProductoService {
         return productoRepository.findAllById(ids);
     }
 
+    public Producto obtenerProductoPorNombre(String nombre) {
+        return productoRepository.findByNombre(nombre).orElse(null);
+    }
+
     @Transactional
     public ProductoResponseDto crearProducto(RequestProductoDto productoDto) {
 
 
         Producto producto = new Producto();
+        if(obtenerProductoPorNombre(productoDto.getNombre()) != null){
+            throw new IllegalArgumentException("El producto con nombre " + productoDto.getNombre() + " ya existe.");
+        }
         producto.setNombre(productoDto.getNombre());
         producto.setDescripcion(productoDto.getDescripcion());
+        if(productoDto.getCantidad() == null || productoDto.getCantidad() < 0){
+            throw new IllegalArgumentException("La cantidad no puede ser nula o negativa.");
+        }
         producto.setCantidad(productoDto.getCantidad());
 
         if (categoriaService.validarCategoria(productoDto.getCategoria())) {
@@ -104,10 +115,7 @@ public class ProductoService {
     }
 
 
-    public Producto obtenerProductoPorNombre(String nombre) {
-        return productoRepository.findByNombre(nombre)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con nombre: " + nombre));
-    }
+
 
     public void eliminarProducto(String nombre) {
         Producto producto = productoRepository.findByNombre(nombre)
@@ -155,6 +163,46 @@ public class ProductoService {
 
         return productoRepository.save(productoExistente);
 
+    }
+
+    public void reduccionStock(Map<Long, Integer> productos) {
+        for (Map.Entry<Long, Integer> entry : productos.entrySet()) {
+            Long productoId = entry.getKey();
+            Integer cantidadAReducir = entry.getValue();
+
+            Producto producto = productoRepository.findById(productoId)
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + productoId));
+
+            if (cantidadAReducir <= 0) {
+                throw new IllegalArgumentException("La cantidad a reducir debe ser mayor que cero para el producto con ID: " + productoId);
+            }
+
+            if (producto.getCantidad() < cantidadAReducir) {
+                throw new IllegalArgumentException("Stock insuficiente para el producto con ID: " + productoId);
+            }
+
+            producto.setCantidad(producto.getCantidad() - cantidadAReducir);
+            historialService.agregarHistorial(producto, producto.getCantidad());
+            productoRepository.save(producto);
+        }
+    }
+
+        public void reposicionStock(Map<Long, Integer> productos) {
+            for (Map.Entry<Long, Integer> entry : productos.entrySet()) {
+                Long productoId = entry.getKey();
+                Integer cantidadAReponer = entry.getValue();
+
+                Producto producto = productoRepository.findById(productoId)
+                        .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado con ID: " + productoId));
+
+                if (cantidadAReponer <= 0) {
+                    throw new IllegalArgumentException("La cantidad a reponer debe ser mayor que cero para el producto con ID: " + productoId);
+                }
+
+                producto.setCantidad(producto.getCantidad() + cantidadAReponer);
+                historialService.agregarHistorial(producto, producto.getCantidad());
+                productoRepository.save(producto);
+            }
     }
 
 

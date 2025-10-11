@@ -7,9 +7,11 @@ import com.producto_service.Service.ProductoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/productos")
@@ -45,6 +47,7 @@ public class ProductoController {
 
 
     @PostMapping()
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
         public ResponseEntity<?> crearProducto(@Valid @RequestBody RequestProductoDto producto) {
             try {
                 ProductoResponseDto nuevo = productoService.crearProducto(producto);
@@ -65,6 +68,7 @@ public class ProductoController {
         }
 
         @DeleteMapping("/{nombre}")
+        @PreAuthorize("hasRole('ADMINISTRADOR')")
         public ResponseEntity<?> eliminarProducto(@PathVariable String nombre) {
             try {
                 productoService.eliminarProducto(nombre);
@@ -75,6 +79,7 @@ public class ProductoController {
         }
 
     @PutMapping("/actualizar/{nombre}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<?> actualizarProducto(@PathVariable String nombre, @RequestBody RequestProductoDto producto) {
         try {
             Producto productoExistente = productoService.obtenerProductoPorNombre(nombre);
@@ -86,6 +91,20 @@ public class ProductoController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
+    }
+
+      @PostMapping("/reducir-stock")
+      public void reduccionStock(@RequestBody Map<Long, Integer> productos) {
+          productoService.reduccionStock(productos);
+
+          }
+
+
+    @PostMapping("/reposicion-stock")
+    public void reposicionStock(@RequestBody Map<Long, Integer> productos) {
+        productoService.reposicionStock(productos);
+
+    }
 
 
 
@@ -93,4 +112,4 @@ public class ProductoController {
 
 
 
-}}
+}

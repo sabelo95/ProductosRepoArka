@@ -4,11 +4,10 @@ import com.producto_service.Model.Categoria;
 import com.producto_service.Model.Marca;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class RequestProductoDto {
