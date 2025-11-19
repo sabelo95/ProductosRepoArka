@@ -129,6 +129,13 @@ public class ProductoService {
             throw new IllegalArgumentException("El producto con nombre " + nombre + " no existe.");
         }
 
+        boolean existe = obtenerTodosLosProductos().stream()
+                .anyMatch(producto -> producto.getNombre().equals(productoDto.getNombre()));
+
+        if (existe) {
+            throw new IllegalArgumentException("El producto con nombre " + productoDto.getNombre() + " ya existe.");
+        }
+
 
         if (productoDto.getNombre() != null) {
             productoExistente.setNombre(productoDto.getNombre());
@@ -204,6 +211,14 @@ public class ProductoService {
                 productoRepository.save(producto);
             }
     }
+
+    public List<Producto> obtenerProductosConStockMenorA(int limite) {
+        return productoRepository.findAll()
+                .stream()
+                .filter(p -> p.getCantidad() < limite)
+                .toList();
+    }
+
 
 
 

@@ -5,19 +5,17 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.List;
 
 @Configuration
@@ -27,29 +25,92 @@ public class SecurityConfig {
     @Value("${jwt.secret}")
     private String secret;
 
+    // SecurityFilterChain para rutas públicas (Swagger) - Sin OAuth2
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain publicSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .securityMatcher(
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/api-docs",
+                        "/api-docs/**",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/swagger-resources/**",
+                        "/webjars/**",
+                        "/actuator/**",
+                        "/swagger-ui/index.html"
+                )
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                // No configurar oauth2ResourceServer - esto excluye estas rutas del procesamiento JWT
+
+        return http.build();
+    }
+
+    // SecurityFilterChain para rutas protegidas - Con OAuth2 JWT
+    @Bean
+    @Order(2)
+    public SecurityFilterChain protectedSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().authenticated() // 👈 todo requiere autenticación
+                        // ⚠️ IMPORTANTE: Las reglas más específicas PRIMERO
+
+                        // Endpoints públicos específicos (sin JWT)
+                        .requestMatchers(
+                                "/productos/lista-ids",
+                                "/productos/reducir-stock",
+                                "/productos/reposicion-stock",
+                                "/reporte/inventario-bajo",
+                                "/productos/health"
+                        ).permitAll()
+
+                        // Todos los GET públicos (sin JWT)
+                        .requestMatchers(HttpMethod.GET, "/productos/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/categorias/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/marcas/**").permitAll()
+
+                        // Endpoints de MARCAS que requieren rol ADMINISTRADOR
+                        .requestMatchers(HttpMethod.POST, "/marcas/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/marcas/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/marcas/**").hasRole("ADMINISTRADOR")
+
+                        // Endpoints de CATEGORÍAS que requieren rol ADMINISTRADOR
+                        .requestMatchers(HttpMethod.POST, "/categorias/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/categorias/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/categorias/**").hasRole("ADMINISTRADOR")
+
+                        // Endpoints de PRODUCTOS que requieren rol ADMINISTRADOR
+                        .requestMatchers(HttpMethod.POST, "/productos/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/productos/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/productos/**").hasRole("ADMINISTRADOR")
+
+                        // Endpoints reportes que requieren rol ADMINISTRADOR
+                        .requestMatchers(HttpMethod.POST, "/reporte/**").hasRole("ADMINISTRADOR")
+
+
+                        // Cualquier otra petición requiere autenticación
+                        .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        jwt -> jwt.decoder(jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter())
                 ));
 
         return http.build();
     }
 
-    // ✅ JwtDecoder que valida el token con el mismo secret del login-service
+
     @Bean
     public JwtDecoder jwtDecoder() {
-        byte[] keyBytes = Base64.getDecoder().decode(secret); // tu secret está en Base64
+        byte[] keyBytes = Base64.getDecoder().decode(secret);
         SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).build();
     }
 
-    // ✅ Convertimos el claim "rol" en un ROLE_xxx para Spring Security
+
+
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
