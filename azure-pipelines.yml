@@ -2,7 +2,7 @@
 # Construye el JAR y prepara el artefacto con Dockerfile para despliegue en AWS ECR
 
 trigger:
-- main
+- master
 
 pool:
   name: sblAgent
