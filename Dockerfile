@@ -63,29 +63,21 @@
 # ===========================
 # Imagen final (runtime only)
 # ===========================
-FROM eclipse-temurin:17-jre-alpine
+# ===========================
+# Imagen final (runtime only) - Compatible Windows/Linux
+# ===========================
+FROM eclipse-temurin:17-jre
 
 # Información de la imagen
 LABEL maintainer="Equipo de desarrollo"
 LABEL description="Microservicio de Productos - Arka Project"
 LABEL version="1.0.0"
 
-# Crear usuario no-root
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
-
-# Instalar herramientas útiles
-RUN apk add --no-cache curl
-
 # Directorio de trabajo
 WORKDIR /app
 
-# Copiar el JAR ya compilado (desde el artifact de Azure DevOps)
+# Copiar el JAR ya compilado
 COPY producto-service-*.jar app.jar
-
-# Cambiar propietario
-RUN chown -R appuser:appgroup /app
-USER appuser
 
 # Puerto expuesto
 EXPOSE 8083
@@ -96,7 +88,7 @@ ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 # Healthcheck para monitoreo
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8083/actuator/health || exit 1
+    CMD java -cp app.jar org.springframework.boot.loader.JarLauncher --spring.main.web-application-type=none || exit 1
 
 # Comando de ejecución
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
